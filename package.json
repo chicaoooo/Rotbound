@@ -1,0 +1,71 @@
+{
+  "name": "rotbound",
+  "version": "0.1.0",
+  "description": "Rotbound - Preso à Podridão. Sobrevivência cooperativa top-down (1 a 4 jogadores em LAN).",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node server/cli.js",
+    "dev": "node server/cli.js --open",
+    "dev:4": "node tools/dev4.js",
+    "test": "node tools/test-net.js",
+    "dist": "electron-builder",
+    "exe": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && electron-builder --win portable --x64",
+    "instalador": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && electron-builder --win nsis --x64"
+  },
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "pt.rotbound.game",
+    "productName": "Rotbound",
+    "files": [
+      "electron/**",
+      "server/**",
+      "shared/**",
+      "client/**",
+      "node_modules/phaser/dist/phaser.min.js",
+      "node_modules/ws/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Rotbound",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "Rotbound-${version}-portatil.exe"
+    },
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "icon": "build/icon.png"
+  },
+  "author": "Rotbound"
+}

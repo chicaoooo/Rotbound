@@ -1,0 +1,538 @@
+{
+  "madeira": {
+    "name": "Madeira",
+    "kind": "res",
+    "stack": 99
+  },
+  "fibra": {
+    "name": "Fibra",
+    "kind": "res",
+    "stack": 99
+  },
+  "pedra": {
+    "name": "Pedra",
+    "kind": "res",
+    "stack": 99
+  },
+  "carvao": {
+    "name": "Carvão",
+    "kind": "res",
+    "stack": 99
+  },
+  "minerio_ferro": {
+    "name": "Minério de ferro",
+    "kind": "res",
+    "stack": 99
+  },
+  "enxofre": {
+    "name": "Enxofre",
+    "kind": "res",
+    "stack": 99
+  },
+  "sucata": {
+    "name": "Sucata",
+    "kind": "res",
+    "stack": 99
+  },
+  "tecido": {
+    "name": "Tecido",
+    "kind": "res",
+    "stack": 99
+  },
+  "componente": {
+    "name": "Componentes eletrónicos",
+    "kind": "res",
+    "stack": 99
+  },
+  "combustivel": {
+    "name": "Combustível",
+    "kind": "res",
+    "stack": 99,
+    "desc": "Alimenta geradores e o Purificador (E junto deles)."
+  },
+  "erva": {
+    "name": "Ervas medicinais",
+    "kind": "res",
+    "stack": 99
+  },
+  "corda": {
+    "name": "Corda",
+    "kind": "res",
+    "stack": 99
+  },
+  "lingote": {
+    "name": "Lingote de ferro",
+    "kind": "res",
+    "stack": 99
+  },
+  "polvora": {
+    "name": "Pólvora",
+    "kind": "res",
+    "stack": 99
+  },
+  "cristal": {
+    "name": "Cristal da Podridão",
+    "kind": "res",
+    "stack": 99
+  },
+  "coracao_negro": {
+    "name": "Coração Negro",
+    "kind": "res",
+    "stack": 99,
+    "desc": "Largado pelo Rei da Podridão. Usado no Purificador."
+  },
+  "carne_podre": {
+    "name": "Carne podre",
+    "kind": "food",
+    "stack": 20,
+    "food": 5,
+    "inf": 12,
+    "desc": "Isco. Comê-la aumenta muito a infeção."
+  },
+  "bagas": {
+    "name": "Bagas",
+    "kind": "food",
+    "stack": 20,
+    "food": 6
+  },
+  "carne_crua": {
+    "name": "Carne crua",
+    "kind": "food",
+    "stack": 20,
+    "food": 10,
+    "inf": 6,
+    "desc": "Cozinha-a numa fogueira."
+  },
+  "carne_cozinhada": {
+    "name": "Carne cozinhada",
+    "kind": "food",
+    "stack": 20,
+    "food": 30
+  },
+  "bagas_assadas": {
+    "name": "Bagas assadas",
+    "kind": "food",
+    "stack": 20,
+    "food": 15
+  },
+  "estufado": {
+    "name": "Estufado",
+    "kind": "food",
+    "stack": 20,
+    "food": 60,
+    "regen": 30
+  },
+  "cha_ervas": {
+    "name": "Chá de ervas",
+    "kind": "food",
+    "stack": 20,
+    "food": 2,
+    "inf": -10
+  },
+  "ligadura": {
+    "name": "Ligadura",
+    "kind": "med",
+    "stack": 20,
+    "heal": 20
+  },
+  "antibioticos": {
+    "name": "Antibióticos",
+    "kind": "med",
+    "stack": 20,
+    "inf": -40
+  },
+  "kit_medico": {
+    "name": "Kit médico",
+    "kind": "med",
+    "stack": 20,
+    "heal": 70,
+    "inf": -20
+  },
+  "vacina": {
+    "name": "Vacina",
+    "kind": "med",
+    "stack": 20,
+    "vaccine": 2
+  },
+  "lanca": {
+    "name": "Lança de madeira",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 12,
+    "cd": 0.5,
+    "range": 2.1,
+    "arc": 40,
+    "kb": 4,
+    "dur": 120
+  },
+  "machado_pedra": {
+    "name": "Machado de pedra",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 14,
+    "cd": 0.75,
+    "range": 1.45,
+    "arc": 80,
+    "kb": 5,
+    "axe": 12,
+    "dur": 150
+  },
+  "picareta_pedra": {
+    "name": "Picareta de pedra",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 9,
+    "cd": 0.65,
+    "range": 1.4,
+    "arc": 70,
+    "kb": 3,
+    "pick": 1,
+    "pickPow": 14,
+    "dur": 150
+  },
+  "taco": {
+    "name": "Taco com pregos",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 18,
+    "cd": 0.55,
+    "range": 1.45,
+    "arc": 110,
+    "kb": 11,
+    "dur": 180
+  },
+  "catana": {
+    "name": "Catana de ferro",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 28,
+    "cd": 0.34,
+    "range": 1.55,
+    "arc": 130,
+    "kb": 5,
+    "dur": 300
+  },
+  "machado_ferro": {
+    "name": "Machado de ferro",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 20,
+    "cd": 0.6,
+    "range": 1.5,
+    "arc": 90,
+    "kb": 6,
+    "axe": 24,
+    "dur": 400
+  },
+  "picareta_ferro": {
+    "name": "Picareta de ferro",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 12,
+    "cd": 0.6,
+    "range": 1.5,
+    "arc": 70,
+    "kb": 4,
+    "pick": 2,
+    "pickPow": 28,
+    "dur": 400
+  },
+  "lamina_podridao": {
+    "name": "Lâmina da Podridão",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 45,
+    "cd": 0.33,
+    "range": 1.7,
+    "arc": 130,
+    "kb": 7,
+    "cure": 1.5,
+    "dur": 800
+  },
+  "martelo": {
+    "name": "Martelo",
+    "kind": "melee",
+    "stack": 1,
+    "dmg": 6,
+    "cd": 0.45,
+    "range": 1.5,
+    "arc": 70,
+    "kb": 3,
+    "hammer": true,
+    "dur": 250,
+    "desc": "Clica num bloco danificado para o reparar."
+  },
+  "arco": {
+    "name": "Arco",
+    "kind": "ranged",
+    "stack": 1,
+    "dmg": 20,
+    "cd": 0.7,
+    "ammo": "flecha",
+    "mag": 1,
+    "reload": 0.0,
+    "spread": 3,
+    "noise": 0,
+    "range": 18,
+    "dur": 200,
+    "bow": true
+  },
+  "pistola": {
+    "name": "Pistola",
+    "kind": "ranged",
+    "stack": 1,
+    "dmg": 25,
+    "cd": 0.22,
+    "ammo": "balas",
+    "mag": 12,
+    "reload": 1.3,
+    "spread": 4,
+    "noise": 15,
+    "range": 20,
+    "dur": 400
+  },
+  "cacadeira": {
+    "name": "Caçadeira",
+    "kind": "ranged",
+    "stack": 1,
+    "dmg": 8,
+    "pellets": 6,
+    "cd": 0.9,
+    "ammo": "cartuchos",
+    "mag": 6,
+    "reload": 2.2,
+    "spread": 22,
+    "noise": 25,
+    "range": 10,
+    "dur": 300
+  },
+  "espingarda": {
+    "name": "Espingarda automática",
+    "kind": "ranged",
+    "stack": 1,
+    "dmg": 18,
+    "cd": 0.1,
+    "ammo": "balas",
+    "mag": 30,
+    "reload": 2.0,
+    "spread": 6,
+    "noise": 30,
+    "range": 24,
+    "dur": 500,
+    "auto": true
+  },
+  "molotov": {
+    "name": "Cocktail molotov",
+    "kind": "throw",
+    "stack": 20,
+    "dmg": 10,
+    "range": 9,
+    "fire": 5,
+    "radius": 1.8
+  },
+  "flecha": {
+    "name": "Flechas",
+    "kind": "ammo",
+    "stack": 20
+  },
+  "balas": {
+    "name": "Balas",
+    "kind": "ammo",
+    "stack": 20
+  },
+  "cartuchos": {
+    "name": "Cartuchos",
+    "kind": "ammo",
+    "stack": 20
+  },
+  "armadura_couro": {
+    "name": "Armadura de couro",
+    "kind": "armor",
+    "stack": 1,
+    "slot": 1,
+    "red": 0.1,
+    "dur": 300
+  },
+  "armadura_ferro": {
+    "name": "Armadura de ferro",
+    "kind": "armor",
+    "stack": 1,
+    "slot": 1,
+    "red": 0.3,
+    "dur": 600
+  },
+  "armadura_podridao": {
+    "name": "Armadura da Podridão",
+    "kind": "armor",
+    "stack": 1,
+    "slot": 1,
+    "red": 0.5,
+    "dur": 1000,
+    "stealth": true,
+    "desc": "Os Errantes ignoram-te."
+  },
+  "mochila": {
+    "name": "Mochila",
+    "kind": "misc",
+    "stack": 1,
+    "desc": "Usa (clique) para ganhar +8 espaços de inventário."
+  },
+  "cadeado": {
+    "name": "Cadeado",
+    "kind": "misc",
+    "stack": 20,
+    "desc": "Clica num baú ou porta para o trancar só para ti."
+  },
+  "tocha": {
+    "name": "Tocha",
+    "kind": "place",
+    "stack": 20,
+    "obj": 41
+  },
+  "fogueira": {
+    "name": "Fogueira",
+    "kind": "place",
+    "stack": 20,
+    "obj": 42
+  },
+  "bancada": {
+    "name": "Bancada de Trabalho",
+    "kind": "place",
+    "stack": 20,
+    "obj": 43
+  },
+  "forja": {
+    "name": "Forja",
+    "kind": "place",
+    "stack": 20,
+    "obj": 44
+  },
+  "bancada_armas": {
+    "name": "Bancada de Armas",
+    "kind": "place",
+    "stack": 20,
+    "obj": 45
+  },
+  "laboratorio": {
+    "name": "Laboratório",
+    "kind": "place",
+    "stack": 20,
+    "obj": 46
+  },
+  "parede_madeira": {
+    "name": "Parede de madeira",
+    "kind": "place",
+    "stack": 99,
+    "obj": 30
+  },
+  "porta_madeira": {
+    "name": "Porta de madeira",
+    "kind": "place",
+    "stack": 20,
+    "obj": 31
+  },
+  "espigoes": {
+    "name": "Espigões de madeira",
+    "kind": "place",
+    "stack": 20,
+    "obj": 32
+  },
+  "parede_pedra": {
+    "name": "Parede de pedra",
+    "kind": "place",
+    "stack": 99,
+    "obj": 33
+  },
+  "parede_metal": {
+    "name": "Parede de metal",
+    "kind": "place",
+    "stack": 99,
+    "obj": 34
+  },
+  "porta_metal": {
+    "name": "Porta de metal",
+    "kind": "place",
+    "stack": 20,
+    "obj": 35
+  },
+  "arame": {
+    "name": "Arame farpado",
+    "kind": "place",
+    "stack": 20,
+    "obj": 36
+  },
+  "mina": {
+    "name": "Mina terrestre",
+    "kind": "place",
+    "stack": 20,
+    "obj": 37
+  },
+  "torre": {
+    "name": "Torre automática",
+    "kind": "place",
+    "stack": 20,
+    "obj": 38,
+    "desc": "Dispara sozinha. Gasta balas de um baú encostado. À noite precisa de um gerador a 12 blocos."
+  },
+  "holofote": {
+    "name": "Holofote",
+    "kind": "place",
+    "stack": 20,
+    "obj": 39,
+    "desc": "Luz forte à noite se houver gerador com combustível. Os Corredores evitam-na."
+  },
+  "gerador": {
+    "name": "Gerador",
+    "kind": "place",
+    "stack": 20,
+    "obj": 40,
+    "desc": "Alimenta holofotes e torres num raio de 12 blocos. Gasta combustível."
+  },
+  "bau": {
+    "name": "Baú",
+    "kind": "place",
+    "stack": 20,
+    "obj": 47
+  },
+  "cama": {
+    "name": "Cama",
+    "kind": "place",
+    "stack": 20,
+    "obj": 48
+  },
+  "purificador": {
+    "name": "Purificador",
+    "kind": "place",
+    "stack": 1,
+    "obj": 49,
+    "desc": "Limpa a Podridão num raio de 30 blocos. Leva-o ao Coração da Podridão para vencer."
+  },
+  "livro_carpintaria": {
+    "name": "Livro de Carpintaria",
+    "kind": "book",
+    "stack": 20,
+    "st": "bancada",
+    "desc": "Clique esquerdo para ler: ensina uma receita nova a todo o grupo."
+  },
+  "livro_metalurgia": {
+    "name": "Livro de Metalurgia",
+    "kind": "book",
+    "stack": 20,
+    "st": "forja",
+    "desc": "Clique esquerdo para ler: ensina uma receita nova a todo o grupo."
+  },
+  "livro_armas": {
+    "name": "Manual de Armas",
+    "kind": "book",
+    "stack": 20,
+    "st": "bancada_armas",
+    "desc": "Clique esquerdo para ler: ensina uma receita nova a todo o grupo."
+  },
+  "livro_quimica": {
+    "name": "Livro de Química",
+    "kind": "book",
+    "stack": 20,
+    "st": "laboratorio",
+    "desc": "Clique esquerdo para ler: ensina uma receita nova a todo o grupo."
+  }
+}
