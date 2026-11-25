@@ -102,10 +102,14 @@ export function makeScene(G) {
       me.x = this.prevX + (G.pred.x - this.prevX) * a + G.offX;
       me.y = this.prevY + (G.pred.y - this.prevY) * a + G.offY;
       // câmara com ligeira inclinação para o rato
-      const lean = 0.18; let lx = (mw.x - me.x) * lean, ly = (mw.y - me.y) * lean; const ll = Math.hypot(lx, ly); if (ll > 3.5) { lx *= 3.5 / ll; ly *= 3.5 / ll; }
-      const k = 1 - Math.exp(-dt * 9);
-      this.camX += (me.x + lx - this.camX) * k; this.camY += (me.y + ly - this.camY) * k;
-      if (Math.hypot(this.camX - me.x, this.camY - me.y) > 30) { this.camX = me.x; this.camY = me.y; }
+      // câmara presa ao jogador + inclinação suave para o rato (calculada no ecrã, sem realimentação)
+      const ptr = this.input.activePointer, zz = this.cam.zoom;
+      let lx = (ptr.x - this.scale.width / 2) / (TILE * zz) * 0.2, ly = (ptr.y - this.scale.height / 2) / (TILE * zz) * 0.2;
+      const ll = Math.hypot(lx, ly); if (ll > 3) { lx *= 3 / ll; ly *= 3 / ll; }
+      if (G.hud.blocking) { lx = 0; ly = 0; }
+      const k = 1 - Math.exp(-dt * 6);
+      this.leanX = (this.leanX || 0) + (lx - (this.leanX || 0)) * k; this.leanY = (this.leanY || 0) + (ly - (this.leanY || 0)) * k;
+      this.camX = me.x + this.leanX; this.camY = me.y + this.leanY;
       // câmara alinhada ao píxel do ecrã
       const z = this.cam.zoom;
       this.cam.centerOn(Math.round(this.camX * TILE * z) / z, Math.round(this.camY * TILE * z) / z);
@@ -424,20 +428,24 @@ export function makeScene(G) {
       if (G.time.ph === 'crepusculo') { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = `rgba(170,40,20,${0.22 * (1 - Math.abs(dark - 0.5) * 2) + 0.05})`; ctx.fillRect(0, 0, W, H); }
       if (G.meState?.rot) { ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = 'rgba(60,90,20,0.12)'; ctx.fillRect(0, 0, W, H); }
       this.flashes = this.flashes.filter(f => (f.t -= dt) > 0);
-      // setas nas bordas para companheiros e pings fora do ecrã
-      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+      // setas nas bordas (companheiros, pings, mochila) numa camada com a resolução total do ecrã → texto nítido
+      const oc = G.overCtx, OW = G.overCanvas.width, OH = G.overCanvas.height, os = OW / this.scale.width;
+      oc.setTransform(1, 0, 0, 1, 0, 0); oc.clearRect(0, 0, OW, OH);
+      const SO = (x, y) => [((x * TILE) - v.x) * z * os, ((y * TILE) - v.y) * z * os];
       const arrow = (x, y, col, label) => {
-        let [sx, sy] = S(x, y); const m = 26 * sc;
-        if (sx > m && sy > m && sx < W - m && sy < H - m) return;
-        const cx = W / 2, cy = H / 2; const a = Math.atan2(sy - cy, sx - cx);
-        const t = Math.min(Math.abs((W / 2 - m) / Math.cos(a)), Math.abs((H / 2 - m) / Math.sin(a)));
-        sx = cx + Math.cos(a) * t; sy = cy + Math.sin(a) * t;
-        ctx.save(); ctx.translate(sx, sy); ctx.rotate(a); ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(12 * sc, 0); ctx.lineTo(-6 * sc, -8 * sc); ctx.lineTo(-6 * sc, 8 * sc); ctx.closePath(); ctx.fill(); ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
-        ctx.fillStyle = '#fff'; ctx.font = `${11 * sc}px monospace`; ctx.textAlign = 'center'; ctx.fillText(label, sx - Math.cos(a) * 22 * sc, sy - Math.sin(a) * 22 * sc + 4);
+        let [sx, sy] = SO(x, y); const m = 30 * os;
+        if (sx > m && sy > m && sx < OW - m && sy < OH - m) return;
+        const cx = OW / 2, cy = OH / 2; const a = Math.atan2(sy - cy, sx - cx);
+        const t = Math.min(Math.abs((OW / 2 - m) / Math.cos(a)), Math.abs((OH / 2 - m) / Math.sin(a)));
+        sx = Math.round(cx + Math.cos(a) * t); sy = Math.round(cy + Math.sin(a) * t);
+        oc.save(); oc.translate(sx, sy); oc.rotate(a); oc.fillStyle = col; oc.beginPath(); oc.moveTo(13 * os, 0); oc.lineTo(-7 * os, -9 * os); oc.lineTo(-7 * os, 9 * os); oc.closePath(); oc.fill(); oc.strokeStyle = '#000'; oc.lineWidth = 2 * os; oc.stroke(); oc.restore();
+        oc.font = `bold ${Math.round(12 * os)}px "Segoe UI", system-ui, sans-serif`; oc.textAlign = 'center'; oc.textBaseline = 'middle';
+        const lx = Math.round(sx - Math.cos(a) * 30 * os), ly = Math.round(sy - Math.sin(a) * 24 * os);
+        oc.lineWidth = 3 * os; oc.strokeStyle = 'rgba(0,0,0,0.85)'; oc.strokeText(label, lx, ly); oc.fillStyle = '#fff'; oc.fillText(label, lx, ly);
       };
       for (const p of G.players) if (p.id !== G.myId && !(p.f & 2)) arrow(p.x, p.y, '#' + PLAYER_COLORS[p.c].toString(16).padStart(6, '0'), p.n + ' ' + Math.round(Math.hypot(p.x - G.me.x, p.y - G.me.y)) + 'm');
       for (const p of G.pings) arrow(p.x, p.y, '#ffe040', p.from);
-      if (G.inv?.bp) arrow(G.inv.bp.x, G.inv.bp.y, '#c08040', 'mochila');
+      if (G.inv?.bp) arrow(G.inv.bp.x, G.inv.bp.y, '#c08040', 'Mochila ' + Math.round(Math.hypot(G.inv.bp.x - G.me.x, G.inv.bp.y - G.me.y)) + 'm');
     }
   };
 }

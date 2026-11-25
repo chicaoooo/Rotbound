@@ -236,9 +236,11 @@ export function stepPlayer(p, inp, world, dt) {
   const len = Math.hypot(mx, my);
   if (len > 1) { mx /= len; my /= len; }
   let vx = 0, vy = 0;
+  if (p.mvx == null) { p.mvx = 0; p.mvy = 0; }
   if (p.dodgeT > 0) {
     p.dodgeT -= dt;
     vx = p.dodgeX * PLAYER.dodgeSpeed; vy = p.dodgeY * PLAYER.dodgeSpeed;
+    p.mvx = vx * 0.4; p.mvy = vy * 0.4;
   } else if (inp.dodge && !p.downed && len > 0.1 && p.stamina >= PLAYER.dodgeCost) {
     p.dodgeT = PLAYER.dodgeTime; p.dodgeX = mx; p.dodgeY = my;
     vx = mx * PLAYER.dodgeSpeed; vy = my * PLAYER.dodgeSpeed; res.dodged = true;
@@ -250,7 +252,11 @@ export function stepPlayer(p, inp, world, dt) {
     const tx = Math.floor(p.x), ty = Math.floor(p.y);
     const tt = TERRAIN[world.getT(tx, ty)]; if (tt && tt.slow) sp *= tt.slow;
     const oo = OBJECTS[world.getO(tx, ty)]; if (oo && oo.slow) sp *= oo.slow;
-    vx = mx * sp; vy = my * sp;
+    // aceleração/travagem suaves (cerca de 0,1 s até à velocidade máxima)
+    const k = Math.min(1, dt * (len > 0.1 ? 15 : 20));
+    p.mvx += (mx * sp - p.mvx) * k; p.mvy += (my * sp - p.mvy) * k;
+    if (Math.abs(p.mvx) < 0.01) p.mvx = 0; if (Math.abs(p.mvy) < 0.01) p.mvy = 0;
+    vx = p.mvx; vy = p.mvy;
   }
   if (p.kx || p.ky) {
     vx += p.kx; vy += p.ky;

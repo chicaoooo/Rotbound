@@ -11,6 +11,14 @@ import { PORT } from '../shared/constants.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let win = null, host = null, listener = null, quitting = false;
+// Definições do jogador (nome, zoom, volume…) num ficheiro da app, para não se perderem ao sair
+const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
+let settings = null, saveTimer = null;
+function loadSettings() { if (settings) return settings; try { settings = JSON.parse(fs.readFileSync(settingsFile(), 'utf8')); } catch { settings = {}; } return settings; }
+function saveSettingsSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(saveSettingsNow, 300); }
+function saveSettingsNow() { clearTimeout(saveTimer); try { fs.mkdirSync(path.dirname(settingsFile()), { recursive: true }); fs.writeFileSync(settingsFile(), JSON.stringify(settings || {}, null, 1)); } catch {} }
+ipcMain.on('settings:load', (e) => { e.returnValue = loadSettings(); });
+ipcMain.on('settings:save', (e, k, v) => { loadSettings()[k] = v; saveSettingsSoon(); });
 // Ícone da janela/barra de tarefas (.ico no Windows) e identidade própria da app no Windows:
 // sem isto, a barra de tarefas agrupa a janela com o electron.exe e mostra o ícone do Electron.
 const ICON = path.join(__dirname, '..', 'client', process.platform === 'win32' ? 'icon.ico' : 'icon.png');
@@ -20,7 +28,8 @@ const slug = (s) => (String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g
 
 async function createWindow() {
   const srv = http.createServer(staticHandler());
-  await new Promise(r => srv.listen(0, '127.0.0.1', r));
+  // porta interna fixa (se estiver ocupada, usa outra qualquer)
+  await new Promise(r => { srv.once('error', () => srv.listen(0, '127.0.0.1', r)); srv.listen(47777, '127.0.0.1', r); });
   win = new BrowserWindow({
     width: 1366, height: 820, minWidth: 960, minHeight: 600, backgroundColor: '#000000', title: 'Rotbound', icon: ICON,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: false },
@@ -54,6 +63,7 @@ ipcMain.handle('host:start', async (e, o) => {
     return { ok: false, error: err.code === 'EADDRINUSE' ? `A porta ${PORT} já está em uso (há outro mundo aberto neste computador?).` : String(err.message || err) };
   }
 });
+ipcMain.handle('host:openLan', async (e, o) => host ? host.openLan(o) : { ok: false, error: 'Não há nenhum mundo aberto.' });
 ipcMain.handle('host:stop', async () => { if (host) { const h = host; host = null; await h.close(); } return true; });
 ipcMain.handle('lan:list', () => listener ? listener.list() : []);
 ipcMain.handle('saves:list', () => {
@@ -72,6 +82,7 @@ app.whenReady().then(() => {
 });
 app.on('window-all-closed', () => app.quit());
 app.on('before-quit', async (e) => {
+  if (settings) saveSettingsNow();
   if (host && !quitting) { e.preventDefault(); quitting = true; const h = host; host = null; await h.close(); app.quit(); }
   if (listener) listener.stop();
 });

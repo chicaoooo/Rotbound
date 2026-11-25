@@ -6,11 +6,11 @@ import { makeScene, snapZoom } from './scene.js';
 import * as audio from './audio.js';
 import { stepPlayer } from '../shared/world.js';
 import { DT, PORT, VERSION } from '../shared/constants.js';
+import { store } from './store.js';
 
 const R = window.rotbound || null;   // ponte do Electron (ausente no navegador)
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const store = { get(k, d) { try { const v = localStorage.getItem('rb_' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem('rb_' + k, JSON.stringify(v)); } catch {} } };
 
 let DATA = null, ART = null, G = null, servedByHost = null;
 
@@ -115,7 +115,7 @@ const menuBg = {
     }
   },
 };
-function nameRow() { return `<div class="row"><label>O teu nome</label><input id="pname" type="text" maxlength="16" value="${esc(store.get('name', 'Sobrevivente'))}"></div>`; }
+function nameRow() { setTimeout(() => { const i = $('#pname'); if (i) i.addEventListener('input', () => { const n = i.value.trim(); if (n) store.set('name', n); }); }, 0); return `<div class="row"><label>O teu nome</label><input id="pname" type="text" maxlength="16" value="${esc(store.get('name', 'Sobrevivente'))}"></div>`; }
 function readName() { const n = ($('#pname')?.value || '').trim() || 'Sobrevivente'; store.set('name', n); return n; }
 const LOGO = `<div class="logo"><h1><span>ROT</span>BOUND</h1><p>PRESO À PODRIDÃO</p><p class="tag">De dia preparas-te. À noite aguentas.</p></div>`;
 
@@ -220,7 +220,7 @@ function startGame(net, w, hostInfo) {
     me: { x: w.spawn.x, y: w.spawn.y }, pred: { x: w.spawn.x, y: w.spawn.y, stamina: 100, dodgeT: 0, kx: 0, ky: 0 }, pending: [], seq: 0, offX: 0, offY: 0,
     players: [], plSnaps: [], entSnaps: [], drops: [], pings: [], powered: new Set(w.pw || []), rotCache: new Map(), unlocked: new Set(w.rec || []),
     time: w.time, clock: w.time.c, inv: null, meState: null, keys: new Set(), mouseL: false, mouseR: false, build: false, dead: false, paused: false,
-    zoom: store.get('zoom', Math.max(1, Math.min(2, Math.round(innerHeight / 650 * 2) / 2))), aim: 0, dodgeReq: false, gotFirst: false,
+    zoom: store.get('zoom', 1.375), aim: 0, dodgeReq: false, gotFirst: false,
     held() { return G.inv ? G.inv.inv[G.inv.sel] : null; },
     setZoom(z) { const nz = snapZoom(z); G.zoom = nz === G.zoom ? snapZoom(z > G.zoom ? G.zoom + 1 / 32 : G.zoom - 1 / 32) : nz; store.set('zoom', G.zoom); G.scene?.applyZoom(); G.hud?.toast(`Zoom ${Math.round(G.zoom * 100)} %`); },
     selectSlot(i) { i = ((i % 8) + 8) % 8; if (G.inv) { G.inv.sel = i; G.hud.setInv(G.inv); } net.send({ t: 'sel', i }); },
@@ -228,7 +228,8 @@ function startGame(net, w, hostInfo) {
   G.hud = new Hud(G);
   // camada de luz
   const lc = $('#light'); G.lightCanvas = lc; G.lightCtx = lc.getContext('2d');
-  const resize = () => { lc.width = Math.ceil(innerWidth / 2); lc.height = Math.ceil(innerHeight / 2); };
+  const oc = $('#overlay'); G.overCanvas = oc; G.overCtx = oc.getContext('2d');
+  const resize = () => { lc.width = Math.ceil(innerWidth / 2); lc.height = Math.ceil(innerHeight / 2); const d = window.devicePixelRatio || 1; oc.width = Math.round(innerWidth * d); oc.height = Math.round(innerHeight * d); };
   resize(); window.addEventListener('resize', resize); G._resize = resize;
 
   // ---- mensagens ----
@@ -249,7 +250,7 @@ function startGame(net, w, hostInfo) {
     const me = m.me; G.meState = me;
     const wasDead = G.dead; G.dead = !!(mine && mine.f & 2);
     const p = G.pred; const bx = p.x, by = p.y;
-    Object.assign(p, { x: me.x, y: me.y, dodgeT: me.dT, dodgeX: me.dX, dodgeY: me.dY, kx: me.kx, ky: me.ky, stamina: me.st, exhausted: me.st < 5, downed: !!(mine && mine.f & 1), lying: !!(mine && mine.f & 4), dead: G.dead });
+    Object.assign(p, { x: me.x, y: me.y, dodgeT: me.dT, dodgeX: me.dX, dodgeY: me.dY, kx: me.kx, ky: me.ky, mvx: me.vx || 0, mvy: me.vy || 0, stamina: me.st, exhausted: me.st < 5, downed: !!(mine && mine.f & 1), lying: !!(mine && mine.f & 4), dead: G.dead });
     G.pending = G.pending.filter(i => i.s > me.ack);
     for (const i of G.pending) stepPlayer(p, i, world, DT);
     const dx = bx - p.x, dy = by - p.y; const sc = G.scene;
@@ -333,6 +334,10 @@ function togglePause() {
   p.innerHTML = `<div class="box"><h2>Pausa <span class="dim small">(o mundo continua a correr)</span></h2>
     <p>Mundo: <b>${esc(G.worldName)}</b> · seed ${G.seed}</p>
     ${G.host && !G.host.solo ? `<div>És o anfitrião. IP para os amigos:</div><div class="ipbox">${ips}</div><div class="dim small">No navegador também podem abrir http://IP:${G.port}</div>` : ''}
+    ${G.host && G.host.solo && R ? `<div class="lanbox"><b>Abrir à LAN</b> <span class="dim small">— deixa amigos entrarem neste mundo sem o fechar</span>
+      <div class="row"><label>Palavra-passe</label><input id="lpass" type="text" placeholder="(opcional)"></div>
+      <div class="row"><label>Jogadores</label><select id="lmax"><option>2</option><option>3</option><option selected>4</option></select></div>
+      <div class="actions" style="margin-top:6px"><button class="pri" id="lopen">Abrir à LAN</button></div><div class="err" id="lerr"></div></div>` : ''}
     <div class="row"><label>Volume</label><input id="vol" type="range" min="0" max="1" step="0.05" value="${audio.volume}" style="flex:1"></div>
     <div class="row"><label>Zoom</label><input id="zm" type="range" min="0.5" max="3" step="0.05" value="${G.zoom}" style="flex:1"></div>
     <div class="actions"><button class="pri" id="res">Continuar</button><button id="ctl">Controlos</button><button id="leave">${G.host ? 'Gravar e sair' : 'Sair para o menu'}</button></div></div>`;
@@ -341,6 +346,16 @@ function togglePause() {
   $('#zm').oninput = (e) => { G.zoom = +e.target.value; store.set('zoom', G.zoom); G.scene?.applyZoom(); };
   $('#zm').title = 'Também podes usar Ctrl + roda do rato';
   $('#res').onclick = () => togglePause();
+  if ($('#lopen')) {
+    $('#lpass').addEventListener('keydown', (e) => e.stopPropagation());
+    $('#lopen').onclick = async () => {
+      $('#lerr').textContent = 'A abrir…';
+      const r = await R.openLan({ password: $('#lpass').value, maxPlayers: +$('#lmax').value });
+      if (!r.ok) { $('#lerr').textContent = r.error; return; }
+      G.ips = r.ips; G.port = r.port; G.host.solo = false;
+      togglePause(); togglePause(); // volta a desenhar a pausa já com o IP
+    };
+  }
   $('#ctl').onclick = () => { togglePause(); G.hud.togglePanel('help'); };
   $('#leave').onclick = () => endGame(null, true);
 }
@@ -352,6 +367,7 @@ async function endGame(reason, voluntary) {
   try { g.phaser.destroy(true); } catch {}
   g.hud.destroy(); $('#pause').style.display = 'none'; $('#game').style.filter = '';
   const lc = $('#light'); lc.getContext('2d').clearRect(0, 0, lc.width, lc.height);
+  const oc = $('#overlay'); oc.getContext('2d').clearRect(0, 0, oc.width, oc.height);
   g.net.close();
   if (g.host && R) await R.stopHost();
   mainMenu(voluntary ? (g.host ? 'Mundo gravado.' : '') : reason);

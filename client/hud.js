@@ -1,6 +1,7 @@
 // HUD e janelas (HTML por cima do jogo): barras, barra rápida, relógio, minimapa, inventário,
 // crafting, habilidades, baús, mapa, chat e avisos.
 import { icons } from './art.js';
+import { store } from './store.js';
 import { recipeState, learnable, alwaysOn } from '../shared/recipes.js';
 import { SKILLS, TREES } from '../shared/skills.js';
 import { OBJECTS, TERRAIN, O, T, CHUNK, CHUNKS, WORLD, CENTER, PLAYER_COLORS, PHASES, DAY_LENGTH, phaseAt, STATIONS, SLOT } from '../shared/constants.js';
@@ -16,7 +17,7 @@ export class Hud {
     this.root = $('#hud'); this.root.innerHTML = HUD_HTML; this.root.style.display = 'block';
     this.inv = null; this.panel = null; this.tab = 'inv'; this.pick = null; this.chest = null; this.mapOpen = false;
     this.craftStation = 'maos'; this.mapZoom = 2; this.markers = [];
-    try { this.markers = JSON.parse(localStorage.getItem('rb_markers_' + game.seed) || '[]'); } catch { this.markers = []; }
+    this.markers = store.get('markers_' + game.seed, []) || [];
     this.chunkImgs = new Map();
     this.buildHotbar();
     this.mini = $('#minimap'); this.miniCtx = this.mini.getContext('2d');
@@ -34,7 +35,7 @@ export class Hud {
       if (e.button === 1) this.g.net.send({ t: 'ping', x: wx, y: wy, kind: 'mapa' });
       else if (e.button === 2) { this.markers = this.markers.filter(m => Math.hypot(m.x - wx, m.y - wy) > 12 / z); }
       else if (e.button === 0) this.markers.push({ x: wx, y: wy });
-      try { localStorage.setItem('rb_markers_' + this.g.seed, JSON.stringify(this.markers)); } catch {}
+      store.set('markers_' + this.g.seed, this.markers);
       e.preventDefault();
     });
     this.tip = $('#tip');
@@ -256,10 +257,10 @@ export class Hud {
 
   // ---------- missões (canto superior direito) ----------
   setQuests(m) { this.quests = m; this.renderQuests(); }
-  toggleQuests() { this.questsHidden = !this.questsHidden; try { localStorage.setItem('rb_qhide', this.questsHidden ? '1' : ''); } catch {} this.renderQuests(); }
+  toggleQuests() { this.questsHidden = !this.questsHidden; store.set('qhide', this.questsHidden); this.renderQuests(); }
   renderQuests() {
     const box = $('#quests'); const m = this.quests; if (!box || !m) return;
-    if (this.questsHidden == null) { try { this.questsHidden = localStorage.getItem('rb_qhide') === '1'; } catch { this.questsHidden = false; } }
+    if (this.questsHidden == null) this.questsHidden = !!store.get('qhide', false);
     const rew = (r) => r && r.length ? `<div class="qrew" title="Recompensa">🎁${r.map(([id, n]) => `<img src="${icons[id]}">${n}`).join(' ')}</div>` : '';
     const bar = (p, n) => `<div class="qbar"><i style="width:${Math.min(100, p / n * 100)}%"></i></div><span class="qn">${p}/${n}</span>`;
     const prevMain = this._lastMain;
@@ -468,6 +469,7 @@ export const HELP_HTML = `
 <li>Crafting (Tab): Corda → Machado e Picareta de pedra → <b>Bancada de Trabalho</b>.</li>
 <li>Quase todas as receitas das bancadas estão bloqueadas 🔒: lê <b>livros</b> (clique esquerdo) que encontras nas <b>estantes</b> de casas, quintas, cabanas, oficinas e bibliotecas. Cada livro ensina uma receita a todo o grupo. Só podes fazer a bancada seguinte depois de aprender todas as receitas da atual.</li>
 <li>Antes do crepúsculo: paredes, uma porta, tochas e uma fogueira. Os zombies não nascem perto da luz.</li>
+<li>Blocos danificados recuperam sozinhos se não levarem dano durante 8 segundos. Para tirar uma parede tua, bate-lhe (devolve o bloco) ou usa B + clique direito.</li>
 <li>Faz uma <b>cama</b> (ponto de renascimento) e um <b>baú</b>. Cozinha carne na fogueira; chá de ervas baixa a infeção.</li>
 <li>Montanhas: carvão e ferro → <b>Forja</b>. Cidade: sucata e componentes → <b>Bancada de Armas</b>. Cristais → <b>Laboratório</b>.</li>
 <li>Objetivo: derrotar o Rei da Podridão (noite 21), construir o Purificador e levá-lo ao Coração da Podridão, no centro do mapa.</li>

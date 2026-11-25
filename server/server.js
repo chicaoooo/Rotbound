@@ -48,14 +48,19 @@ export function startServer(o = {}) {
   const later = (fn) => lag ? setTimeout(fn, lag) : fn();
 
   return new Promise((resolve, reject) => {
-    const server = http.createServer(staticHandler(ROOT, (req, res, url) => {
+    const handler = staticHandler(ROOT, (req, res, url) => {
       if (url === '/info') {
         res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
         res.end(JSON.stringify(info()));
         return true;
       }
-    }));
-    const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
+    });
+    const server = http.createServer(handler);
+    // o mesmo servidor WebSocket pode atender várias portas (local e, mais tarde, LAN)
+    const wss = new WebSocketServer({ noServer: true, maxPayload: 64 * 1024 });
+    const attach = (srv) => srv.on('upgrade', (req, sock, head) => wss.handleUpgrade(req, sock, head, (ws) => wss.emit('connection', ws, req)));
+    attach(server);
+    let lanServer = null;
     function info() { return { name: game.opts.name, host: opts.hostName || 'Anfitrião', players: game.players.size, max: opts.maxPlayers, port: opts.port, pass: !!opts.password, ver: VERSION, night: game.night }; }
 
     wss.on('connection', (ws, req) => {
@@ -123,6 +128,24 @@ export function startServer(o = {}) {
     }
 
     let announcer = null;
+    // abrir à LAN um mundo que começou a solo (sem o fechar)
+    async function openLan(o = {}) {
+      if (lanServer || (opts.lan && opts.host !== '127.0.0.1')) return { ok: true, port: opts.port, ips: lanAddresses().map(a => a.ip) };
+      opts.password = o.password || ''; opts.maxPlayers = Math.max(2, Math.min(4, +o.maxPlayers || 4));
+      let port = PORT, err = null;
+      for (; port < PORT + 10; port++) {
+        const srv = http.createServer(handler); attach(srv);
+        try { await new Promise((res, rej) => { srv.once('error', rej); srv.listen(port, '0.0.0.0', res); }); lanServer = srv; break; }
+        catch (e) { err = e; try { srv.close(); } catch {} }
+      }
+      if (!lanServer) return { ok: false, error: 'Não foi possível abrir a porta para a LAN: ' + (err?.message || '') };
+      opts.lan = true; opts.port = port; // os outros entram por esta porta
+      announcer = startAnnouncer(info);
+      const ips = lanAddresses().map(a => a.ip);
+      game.broadcast({ t: 'n', text: 'O mundo está aberto à LAN!', kind: 'good' });
+      log(`Aberto à LAN na porta ${port}: ${ips.join(', ')}`);
+      return { ok: true, port, ips };
+    }
     async function close(reason = 'O anfitrião fechou o mundo.') {
       running = false;
       if (announcer) announcer.stop();
@@ -130,7 +153,7 @@ export function startServer(o = {}) {
       game.broadcast({ t: 'bye', reason });
       await new Promise(r => setTimeout(r, 150));
       for (const ws of conns) try { ws.close(); } catch {}
-      wss.close(); server.close();
+      wss.close(); server.close(); if (lanServer) lanServer.close();
       log('Servidor fechado.');
       if (opts.onClose) opts.onClose(reason);
     }
@@ -143,7 +166,7 @@ export function startServer(o = {}) {
       if (opts.lan && ips.length) log('IP para os amigos: ' + ips.map(i => `${i}:${opts.port}`).join(', '));
       if (opts.lan) announcer = startAnnouncer(info);
       setTimeout(loop, stepMs);
-      resolve({ game, close, port: opts.port, ips, info });
+      resolve({ game, close, port: opts.port, ips, info, openLan, get lan() { return !!lanServer || opts.lan; } });
     });
   });
 }

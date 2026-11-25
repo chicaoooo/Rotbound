@@ -63,6 +63,7 @@ export class Game {
     this.drops = new Map();
     this.meta = new Map();    // "x,y" → dados de blocos especiais (baús, donos, combustível...)
     this.built = new Set();   // blocos construídos (para a Podridão os apodrecer)
+    this.damaged = new Map(); // "x,y" → tick do último dano (para recuperarem com o tempo)
     this.lights = new Set();  // fontes de luz colocadas
     this.turrets = new Set();
     this.generators = new Set();
@@ -234,6 +235,24 @@ export class Game {
       const c = this.world.chunkAt(x, y); c.h[(y % CHUNK) * CHUNK + (x % CHUNK)] = hp; c.modified = true;
       this.dirtyTiles.set(key(x, y), [x, y]);
       if (OBJECTS[o].solid && OBJECTS[o].built) this.ffDirtySoft = true;
+      this.markDamaged(x, y);
+    }
+  }
+  // blocos danificados recuperam sozinhos se ninguém lhes tocar durante algum tempo
+  markDamaged(x, y) { this.damaged.set(key(x, y), this.tick); }
+  updateHealing() {
+    if (this.tick % 20) return; // 1× por segundo
+    const quiet = TICK_RATE * 8; // 8 s sem levar dano
+    for (const [k, last] of this.damaged) {
+      const [x, y] = unkey(k); const o = this.world.getO(x, y);
+      if (!o) { this.damaged.delete(k); continue; }
+      if (this.tick - last < quiet) continue;
+      const mx = this.maxHpOf(x, y), hp = this.world.getH(x, y);
+      if (hp >= mx) { this.damaged.delete(k); continue; }
+      const nh = Math.min(mx, hp + Math.max(1, Math.round(mx * 0.03))); // 3 % da vida por segundo
+      const c = this.world.chunkAt(x, y); c.h[(y % CHUNK) * CHUNK + (x % CHUNK)] = nh; c.modified = true;
+      this.dirtyTiles.set(k, [x, y]);
+      if (nh >= mx) this.damaged.delete(k);
     }
   }
   maxHpOf(x, y) {
@@ -714,7 +733,7 @@ export class Game {
     // recolher / partir o bloco apontado
     const tx = Math.floor(p.input.ax), ty = Math.floor(p.input.ay);
     const o = this.world.getO(tx, ty);
-    if (o && Math.hypot(tx + 0.5 - p.x, ty + 0.5 - p.y) <= PLAYER.reach) { if (this.hitObject(p, tx, ty, o, d)) hits++; }
+    if (o && Math.hypot(tx + 0.5 - p.x, ty + 0.5 - p.y) <= PLAYER.reach && !(hits && OBJECTS[o].built && !d.hammer)) { if (this.hitObject(p, tx, ty, o, d)) hits++; }
     else if (!hits) {
       // sem alvo apontado: tenta o bloco imediatamente à frente
       const fx = Math.floor(p.x + Math.cos(a) * 0.9), fy = Math.floor(p.y + Math.sin(a) * 0.9);
@@ -732,6 +751,25 @@ export class Game {
       this.notice(p, this.items[it.id].name + ' partiu-se!'); this.fx.push({ k: 'snd', s: 'break', x: p.x, y: p.y });
     }
   }
+  // partir blocos construídos à pancada (devolve o bloco ao partir)
+  hitBuilt(p, x, y, o, d) {
+    const def = OBJECTS[o]; const m = this.meta.get(key(x, y));
+    if (m?.lock && m.lock !== p.name) { this.notice(p, `Trancado por ${m.lock}`); return false; }
+    if (def.purifier && this.finale) { this.notice(p, 'O Purificador está a carregar!'); return false; }
+    const dmg = Math.max(d.dmg || 5, d.axe || 0, d.pickPow || 0) * 1.5;
+    const hp = this.world.getH(x, y) - dmg;
+    this.fx.push({ k: 'chip', x: x + 0.5, y: y + 0.5, o });
+    if (hp > 0) {
+      const c = this.world.chunkAt(x, y); c.h[(y % CHUNK) * CHUNK + (x % CHUNK)] = hp; c.modified = true;
+      this.dirtyTiles.set(key(x, y), [x, y]); this.markDamaged(x, y); this.ffDirtySoft = true;
+      return true;
+    }
+    if (def.item) { this.addItem(p, def.item, 1); this.toast(p, `+1 ${this.items[def.item].name}`); }
+    if (def.chest && m?.chest) { for (const it of m.chest) if (it) this.addItemObj(p, it); m.chest = null; }
+    this.fx.push({ k: 'break', x: x + 0.5, y: y + 0.5, o });
+    this.setTile(x, y, 0, 0);
+    return true;
+  }
   hitObject(p, x, y, o, d) {
     const def = OBJECTS[o];
     if (def.built) {
@@ -746,7 +784,7 @@ export class Game {
         this.dirtyTiles.set(key(x, y), [x, y]);
         this.fx.push({ k: 'snd', s: 'repair', x, y }); this.ev('repair'); return true;
       }
-      return false;
+      return this.hitBuilt(p, x, y, o, d);
     }
     if (def.interact && def.loot) { this.interact(p, x + 0.5, y + 0.5); return true; }
     if (def.tool === 'none') { this.notice(p, 'Nada o consegue partir… só um Purificador.'); return false; }
@@ -760,7 +798,7 @@ export class Game {
     const rotten = this.world.rot.isRot(x, y);
     this.fx.push({ k: 'chip', x: x + 0.5, y: y + 0.5, o });
     const hp = this.world.getH(x, y) - dmg;
-    if (hp > 0) { this.world.chunkAt(x, y).h[(y % CHUNK) * CHUNK + (x % CHUNK)] = hp; this.dirtyTiles.set(key(x, y), [x, y]); return true; }
+    if (hp > 0) { this.world.chunkAt(x, y).h[(y % CHUNK) * CHUNK + (x % CHUNK)] = hp; this.dirtyTiles.set(key(x, y), [x, y]); this.markDamaged(x, y); return true; }
     // partido: saque
     let drops = def.drops;
     if (o === O.ARVORE && rotten) drops = OBJECTS[O.ARVORE_MORTA].drops;
@@ -1404,6 +1442,7 @@ export class Game {
     this.spawnAnimals(dt);
     this.updateRegrow();
     this.updateRot(dt);
+    this.updateHealing();
     this.updateFinale(dt);
     if (this.tick % 20 === 0) this.updatePower();
     // apanhar automaticamente itens pequenos ao passar
@@ -1542,7 +1581,7 @@ export class Game {
       }
       const me = {
         x: p.x, y: p.y, ack: p.lastSeq, hp: +p.hp.toFixed(1), hu: +p.hunger.toFixed(1), st: +p.stamina.toFixed(1), in: +p.infection.toFixed(1),
-        ms: this.maxStamina(p), dT: +p.dodgeT.toFixed(3), dX: p.dodgeX, dY: p.dodgeY, kx: +p.kx.toFixed(3), ky: +p.ky.toFixed(3),
+        ms: this.maxStamina(p), dT: +p.dodgeT.toFixed(3), dX: p.dodgeX, dY: p.dodgeY, kx: +p.kx.toFixed(3), ky: +p.ky.toFixed(3), vx: +(p.mvx || 0).toFixed(3), vy: +(p.mvy || 0).toFixed(3),
         rl: p.reloadT > 0 ? +(1 - p.reloadT / p.reloadTotal).toFixed(2) : 0, vac: p.vaccine, rot: this.world.rot.isRot(Math.floor(p.x), Math.floor(p.y)) ? 1 : 0,
         rv: p.reviveT > 0 ? +(p.reviveT / (4 * (1 - 0.25 * this.sk(p, 'socorrista')))).toFixed(2) : 0, oc: p.openChest,
       };
@@ -1642,6 +1681,7 @@ export class Game {
           const x = cx * CHUNK + (i % CHUNK), y = cy * CHUNK + ((i / CHUNK) | 0); const kk = key(x, y);
           if (def.built) this.built.add(kk); if (def.light) this.lights.add(kk); if (def.turret) this.turrets.add(kk);
           if (def.generator) this.generators.add(kk); if (def.purifier) this.purifiers.add(kk); if (o === O.HOLOFOTE) this.holofotes.add(kk);
+          if (s.h[i] < def.hp) this.damaged.set(kk, -1e9); // recupera depois de carregar
         }
       }
       this.regrow = (d.regrow || []).map(r => ({ ...r, t: Math.max(0, r.t) }));
